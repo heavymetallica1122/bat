@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="text-center text-white mb-5">
+            <h1 class="display-3 mb-3">♻️ Учет переработки вторсырья</h1>
+            <p class="lead">Вместе мы делаем планету чище!</p>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="stat-card text-center">
+                    <div class="battery-icon">♻️</div>
+                    <div class="stat-number">{{ total_batteries }}</div>
+                    <h4>Сдано всего</h4>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card text-center">
+                    <div class="battery-icon">👥</div>
+                    <div class="stat-number">{{ total_users }}</div>
+                    <h4>Участников проекта</h4>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card text-center">
+                    <div class="battery-icon">📊</div>
+                    <div class="stat-number">{{ stats_by_type|length }}</div>
+                    <h4>Типов материалов</h4>
+                </div>
+            </div>
+        </div>
+
+        {% if stats_by_type %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">📊 Статистика по категориям</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mx-auto">
+                        <canvas id="materialChart" 
+                                style="max-height: 400px;"
+                                data-labels="{{ chart_labels|escapejs }}"
+                                data-values="{{ chart_data|escapejs }}"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="list-group">
+                            {% for item in stats_by_type %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ item.recyclable_type__icon }} {{ item.recyclable_type__name }}</span>
+                                <span class="badge bg-primary rounded-pill">{{ item.total }} {{ item.recyclable_type__unit }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not user.is_authenticated %}
+        <div class="card mb-4">
+            <div class="card-body text-center p-5">
+                <h3 class="mb-3">Присоединяйтесь к нам!</h3>
+                <p class="lead">Зарегистрируйтесь, чтобы начать отслеживать сдачу батареек</p>
+                <a href="{% url 'register' %}" class="btn btn-primary btn-lg me-2">Регистрация</a>
+                <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg">Войти</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="card mb-4">
+            <div class="card-body text-center p-4">
+                <h3 class="mb-3">Готовы сдать вторсырье?</h3>
+                <a href="{% url 'submit_batteries' %}" class="btn btn-success btn-lg">Добавить запись</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if recent_submissions %}
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Последние сдачи</h4>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for submission in recent_submissions %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ submission.user.username }}</strong> • {{ submission.recyclable_type.icon }} {{ submission.recyclable_type.name }}
+                            <small class="text-muted d-block">{{ submission.get_city_display }} • {{ submission.date_submitted|date:"d.m.Y H:i" }}</small>
+                        </div>
+                        <span class="badge bg-primary rounded-pill">{{ submission.quantity }} {{ submission.recyclable_type.unit }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chartCanvas = document.getElementById('materialChart');
+        
+        if (chartCanvas) {
+            const labels = JSON.parse(chartCanvas.dataset.labels);
+            const values = JSON.parse(chartCanvas.dataset.values);
+            
+            // Генерация цветов для диаграммы
+            const colors = [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(199, 199, 199, 0.8)',
+                'rgba(83, 102, 255, 0.8)',
+                'rgba(255, 99, 255, 0.8)',
+                'rgba(99, 255, 132, 0.8)'
+            ];
+            
+            new Chart(chartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: colors.map(color => color.replace('0.8', '1')),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 13
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Распределение по типам материалов',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            padding: 20
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    let value = context.parsed || 0;
+                                    let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    let percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

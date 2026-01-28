@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Моя статистика</h3>
+            </div>
+            <div class="card-body text-center">
+                <h1 class="display-4 text-primary">{{ total }}</h1>
+                <p class="lead">Всего сдано батареек</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">История сдач</h4>
+            </div>
+            <div class="card-body">
+                {% if submissions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Материал</th>
+                                <th>Город</th>
+                                <th>Количество</th>
+                                <th>Комментарий</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in submissions %}
+                            <tr>
+                                <td>{{ submission.date_submitted|date:"d.m.Y H:i" }}</td>
+                                <td>{{ submission.recyclable_type.icon }} {{ submission.recyclable_type.name }}</td>
+                                <td>{{ submission.get_city_display }}</td>
+                                <td><span class="badge bg-primary">{{ submission.quantity }} {{ submission.recyclable_type.unit }}</span></td>
+                                <td>{{ submission.comment|default:"—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <p class="lead text-muted">У вас пока нет записей</p>
+                    <a href="{% url 'submit_batteries' %}" class="btn btn-primary">Добавить первую запись</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
